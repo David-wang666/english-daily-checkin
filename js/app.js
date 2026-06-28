@@ -773,15 +773,30 @@ if (dom.dailyCountPlus) {
   });
 }
 
+// ====== iOS 安全区域检测 ======
+(function detectSafeArea() {
+  // 方法1: 通过隐藏元素读取 env(safe-area-inset-bottom)
+  var el = document.createElement('div');
+  el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px);pointer-events:none;z-index:-1';
+  document.body.appendChild(el);
+  var safeBottom = parseFloat(getComputedStyle(el).paddingBottom) || 0;
+  document.body.removeChild(el);
+
+  // 方法2: 兜底 - 如果是 iPhone X+ (刘海屏) 但 env 没生效
+  if (safeBottom < 10) {
+    var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    var hasNotch = window.innerWidth >= 375 && window.innerHeight >= 812;
+    if (iOS && hasNotch) safeBottom = 34;
+  }
+
+  document.documentElement.style.setProperty('--safe-bottom', safeBottom + 'px');
+})();
+
 function init() {
-  // 添加分类到首页底部导航（长按进入测试模式提示）
   initTheme();
   refreshHome();
   refreshStats();
   refreshDailyCountUI();
-
-  // 统计页面也默认加载
-  // 默认首页
 }
 
 // 启动
