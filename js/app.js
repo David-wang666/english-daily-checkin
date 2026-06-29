@@ -550,9 +550,9 @@ function showQuizQuestion() {
 
 // Global click handler for quiz options (uses event delegation)
 document.addEventListener('click', (e) => {
-  const btn = e.target.closest('#quiz-options .quiz-option');
-  if (!btn || btn.classList.contains('disabled')) return;
-  const container = btn.closest('#quiz-options');
+  const btn = e.target.closest('.quiz-option');
+  if (!btn || !btn.closest('#quiz-options') || btn.classList.contains('disabled')) return;
+  const container = document.getElementById('quiz-options');
   if (!container || !container.dataset.correct) return;
   const correct = container.dataset.correct;
   handleQuizAnswer(btn, correct);
