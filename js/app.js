@@ -539,24 +539,34 @@ function showQuizQuestion() {
   }
   shuffle(options);
 
-  // Build options with data attributes and global click handler
-  dom.quizOptions.innerHTML = options.map(opt => {
+  // Build options with inline onclick (most reliable on iOS)
+  dom.quizOptions.innerHTML = options.map((opt, idx) => {
     const safeZh = opt.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-    return `<button class="quiz-option" data-zh="${safeZh}">${opt}</button>`;
+    return `<button class="quiz-option" data-zh="${safeZh}" onclick="handleOptionClick(this)">${opt}</button>`;
   }).join('');
-  // Store correct answer on container
+  // Store correct answer
   dom.quizOptions.dataset.correct = correct;
+  window.__quizCorrect = correct; // backup for onclick
+}
+// Called by inline onclick
+function handleOptionClick(btn) {
+  if (btn.classList.contains('disabled')) return;
+  const container = document.getElementById('quiz-options');
+  const correct = container?.dataset.correct;
+  if (correct) handleQuizAnswer(btn, correct);
 }
 
 // Global click handler for quiz options (uses event delegation)
-document.addEventListener('click', (e) => {
+function handleQuizClick(e) {
   const btn = e.target.closest('.quiz-option');
   if (!btn || !btn.closest('#quiz-options') || btn.classList.contains('disabled')) return;
   const container = document.getElementById('quiz-options');
   if (!container || !container.dataset.correct) return;
   const correct = container.dataset.correct;
   handleQuizAnswer(btn, correct);
-});
+}
+document.addEventListener('click', handleQuizClick);
+document.addEventListener('touchend', handleQuizClick);
 
 function handleQuizAnswer(btn, correct) {
   if (state.quizAnswered) return;
