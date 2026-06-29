@@ -540,12 +540,16 @@ function showQuizQuestion() {
   shuffle(options);
 
   dom.quizOptions.innerHTML = options.map(opt => `
-    <button class="quiz-option" data-zh="${opt}">${opt}</button>
+    <button class="quiz-option" data-zh="${opt.replace(/"/g,'&quot;')}">${opt}</button>
   `).join('');
 
-  dom.quizOptions.querySelectorAll('.quiz-option').forEach(btn => {
-    btn.addEventListener('click', () => handleQuizAnswer(btn, correct));
-  });
+  // Event delegation on quiz options container
+  dom.quizOptions.onclick = (e) => {
+    const btn = e.target.closest('.quiz-option');
+    if (btn && !btn.classList.contains('disabled')) {
+      handleQuizAnswer(btn, correct);
+    }
+  };
 }
 
 function handleQuizAnswer(btn, correct) {
