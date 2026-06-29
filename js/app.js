@@ -151,6 +151,7 @@ function switchScreen(id) {
   if (id === 'home') refreshHome();
   else if (id === 'favorites') refreshFavorites();
   else if (id === 'stats') refreshStats();
+  else if (id === 'quiz') startQuiz('all');
 }
 
 dom.nav.forEach(btn => {
