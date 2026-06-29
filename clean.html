@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>正在刷新...</title></head>
+<body style="font-family:-apple-system,sans-serif;text-align:center;padding:60px 20px">
+<h2>🔄 正在清除缓存...</h2>
+<p id="status">请稍候...</p>
+<script>
+(async function(){
+  // 1. 解除所有 Service Worker
+  if ('serviceWorker' in navigator) {
+    var regs = await navigator.serviceWorker.getRegistrations();
+    for (var r of regs) {
+      await r.unregister();
+      document.getElementById('status').textContent = '已解除旧缓存...';
+    }
+    // 2. 清除所有缓存
+    var keys = await caches.keys();
+    for (var k of keys) {
+      await caches.delete(k);
+      document.getElementById('status').textContent = '已清除缓存: ' + k;
+    }
+  }
+  // 3. 强制跳转回首页
+  document.getElementById('status').textContent = '✅ 完成！正在跳转...';
+  setTimeout(function(){
+    window.location.replace('/english-daily-checkin/');
+  }, 500);
+})();
+</script>
+</body></html>

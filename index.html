@@ -202,14 +202,15 @@
     <div class="toast" id="toast"></div>
   </div>
 
-  <script src="js/data.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
   <script>
+    // Unregister all service workers to force fresh load
     if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("sw.js?v=3").catch(() => {});
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(reg => reg.unregister());
       });
     }
   </script>
+  <script src="js/data.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>
