@@ -151,11 +151,14 @@ function switchScreen(id) {
   if (id === 'home') refreshHome();
   else if (id === 'favorites') refreshFavorites();
   else if (id === 'stats') refreshStats();
-  else if (id === 'quiz') startQuiz('all');
 }
 
 dom.nav.forEach(btn => {
-  btn.addEventListener('click', () => switchScreen(btn.dataset.screen));
+  if (btn.dataset.screen === 'quiz') {
+    btn.addEventListener('click', () => startQuiz('all'));
+  } else {
+    btn.addEventListener('click', () => switchScreen(btn.dataset.screen));
+  }
 });
 
 dom.backBtns.forEach(btn => {
@@ -507,6 +510,8 @@ function startQuiz(catId) {
   dom.quizFeedback.textContent = '';
   dom.quizFeedback.className = 'quiz-feedback';
   switchScreen('quiz');
+  // Highlight quiz nav button
+  dom.nav.forEach(btn => btn.classList.toggle('active', btn.dataset.screen === 'quiz'));
   showQuizQuestion();
 }
 
@@ -605,8 +610,11 @@ dom.quizRetry.addEventListener('click', () => {
 dom.quizBackHome.addEventListener('click', () => switchScreen('home'));
 
 dom.quizSkip.addEventListener('click', () => {
-  if (!state.quizAnswered) {
+  if (state.quizIndex < state.quizWords.length) {
     state.quizIndex++;
+    state.quizAnswered = false;
+    dom.quizFeedback.textContent = '';
+    dom.quizFeedback.className = 'quiz-feedback';
     showQuizQuestion();
   }
 });
