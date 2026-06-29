@@ -489,155 +489,145 @@ dom.quickRandom.addEventListener('click', () => {
   showCard();
 });
 
-// ====== 测试模式 ======
+// ====== 测试模式（完全独立，不依赖页面CSS） ======
 function startQuiz(catId) {
-  let pool;
+  // 收集单词
+  let pool = [];
   if (catId === 'all') {
-    pool = [];
     for (const key of Object.keys(WORD_DB)) pool.push(...WORD_DB[key]);
   } else {
     pool = [...(WORD_DB[catId] || [])];
   }
-  if (pool.length < 4) { showToast('该分类单词太少，无法测试'); return; }
+  if (pool.length < 4) { showToast('单词太少，无法测试'); return; }
 
   shuffle(pool);
-  state.quizWords = pool.slice(0, 10);
-  state.quizIndex = 0;
-  state.quizCorrect = 0;
-  state.quizAnswered = false;
-  dom.quizArea.style.display = '';
-  dom.quizResult.style.display = 'none';
-  dom.quizFeedback.textContent = '';
-  dom.quizFeedback.className = 'quiz-feedback';
-  switchScreen('quiz');
-  // Highlight quiz nav button
-  dom.nav.forEach(btn => btn.classList.toggle('active', btn.dataset.screen === 'quiz'));
-  showQuizQuestion();
-}
+  const words = pool.slice(0, 10);
+  let idx = 0, correctCount = 0, answered = false;
 
-function showQuizQuestion() {
-  if (state.quizIndex >= state.quizWords.length) {
-    showQuizResult();
-    return;
-  }
+  // 构建测试界面（纯内联样式，不受主 CSS 影响）
+  const wrap = document.createElement('div');
+  wrap.id = '__quiz_wrap';
+  wrap.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#f2f2f7;z-index:9999;font-family:-apple-system,sans-serif;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch';
+  wrap.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 12px">
+      <button id="__q_back" style="border:none;background:none;font-size:16px;color:#007aff;padding:4px 0">‹ 返回首页</button>
+      <span id="__q_progress" style="font-size:14px;color:#8e8e93;font-weight:500">1 / 10</span>
+      <button id="__q_skip" style="border:none;background:none;font-size:14px;color:#007aff">跳过 ›</button>
+    </div>
+    <div id="__q_word" style="font-size:32px;font-weight:700;text-align:center;margin:24px 0 8px;color:#1c1c1e"></div>
+    <div style="text-align:center;color:#8e8e93;margin-bottom:28px;font-size:15px">请选择正确的中文意思：</div>
+    <div id="__q_opts" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div id="__q_fb" style="text-align:center;font-size:18px;font-weight:600;min-height:28px;margin-top:20px"></div>
+    <div id="__q_result" style="display:none;text-align:center;padding:40px 0">
+      <div style="font-size:64px">🎉</div>
+      <div style="font-size:22px;font-weight:700;margin:8px 0">测试完成！</div>
+      <div id="__q_score" style="font-size:48px;font-weight:800;margin:12px 0"></div>
+      <div id="__q_msg" style="font-size:16px;color:#8e8e93;margin-bottom:24px"></div>
+      <button id="__q_retry" style="width:100%;padding:16px;border:none;border-radius:14px;font-size:16px;font-weight:600;background:linear-gradient(135deg,#007aff,#5856d6);color:#fff;margin-bottom:10px;cursor:pointer">🔄 再来一次</button>
+      <button id="__q_home" style="width:100%;padding:16px;border:0.5px solid rgba(255,255,255,0.5);border-radius:14px;font-size:16px;font-weight:600;background:rgba(255,255,255,0.85);color:#007aff;cursor:pointer">🏠 返回首页</button>
+    </div>
+  `;
+  document.body.appendChild(wrap);
 
-  const w = state.quizWords[state.quizIndex];
-  dom.quizWord.textContent = w.en;
-  dom.quizProgress.textContent = `${state.quizIndex + 1} / ${state.quizWords.length}`;
-  state.quizAnswered = false;
+  // 获取元素
+  const qWord = document.getElementById('__q_word');
+  const qOpts = document.getElementById('__q_opts');
+  const qFb = document.getElementById('__q_fb');
+  const qProg = document.getElementById('__q_progress');
+  const qResult = document.getElementById('__q_result');
 
-  // Generate options: 1 correct + 3 random
-  const correct = w.zh;
+  // 收集所有中文释义
   const allZh = [];
-  for (const key of Object.keys(WORD_DB)) {
-    for (const ww of WORD_DB[key]) allZh.push(ww.zh);
-  }
-  const options = [correct];
-  while (options.length < 4) {
-    const pick = allZh[Math.floor(Math.random() * allZh.length)];
-    if (!options.includes(pick)) options.push(pick);
-  }
-  shuffle(options);
+  for (const key of Object.keys(WORD_DB)) for (const ww of WORD_DB[key]) allZh.push(ww.zh);
 
-  // Build options with inline onclick (most reliable on iOS)
-  dom.quizOptions.innerHTML = options.map((opt, idx) => {
-    const safeZh = opt.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-    return `<button class="quiz-option" data-zh="${safeZh}" onclick="handleOptionClick(this)">${opt}</button>`;
-  }).join('');
-  // Store correct answer
-  dom.quizOptions.dataset.correct = correct;
-  window.__quizCorrect = correct; // backup for onclick
-}
-// Called by inline onclick
-function handleOptionClick(btn) {
-  if (btn.classList.contains('disabled')) return;
-  const container = document.getElementById('quiz-options');
-  const correct = container?.dataset.correct;
-  if (correct) handleQuizAnswer(btn, correct);
-}
+  function showQ() {
+    if (idx >= words.length) { showR(); return; }
+    const w = words[idx];
+    qWord.textContent = w.en;
+    qProg.textContent = (idx + 1) + ' / ' + words.length;
+    answered = false;
+    qFb.textContent = '';
+    qFb.style.color = '';
+    qResult.style.display = 'none';
 
-// Global click handler for quiz options (uses event delegation)
-function handleQuizClick(e) {
-  const btn = e.target.closest('.quiz-option');
-  if (!btn || !btn.closest('#quiz-options') || btn.classList.contains('disabled')) return;
-  const container = document.getElementById('quiz-options');
-  if (!container || !container.dataset.correct) return;
-  const correct = container.dataset.correct;
-  handleQuizAnswer(btn, correct);
-}
-document.addEventListener('click', handleQuizClick);
-document.addEventListener('touchend', handleQuizClick);
+    const ans = w.zh;
+    const opts = [ans];
+    while (opts.length < 4) {
+      const p = allZh[Math.floor(Math.random() * allZh.length)];
+      if (!opts.includes(p)) opts.push(p);
+    }
+    shuffle(opts);
 
-function handleQuizAnswer(btn, correct) {
-  if (state.quizAnswered) return;
-  state.quizAnswered = true;
+    qOpts.innerHTML = opts.map(o => {
+      const safe = o.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      return `<button class="__q_btn" data-zh="${safe}" style="width:100%;padding:18px;border-radius:14px;border:1.5px solid rgba(0,0,0,0.06);background:rgba(255,255,255,0.85);font-size:17px;color:#1c1c1e;cursor:pointer;text-align:left;font-family:inherit;-webkit-touch-callout:none;touch-action:manipulation">${o}</button>`;
+    }).join('');
 
-  const selected = btn.dataset.zh;
-  const isCorrect = selected === correct;
+    // 点击处理
+    qOpts.onclick = function(e) {
+      const btn = e.target.closest('.__q_btn');
+      if (!btn || btn.disabled || answered) return;
+      answered = true;
+      const selected = btn.dataset.zh;
+      const isRight = selected === ans;
 
-  state.quizHist.total++;
-  if (isCorrect) {
-    state.quizCorrect++;
-    state.quizFeedback.textContent = '✅ 正确！';
-    state.quizFeedback.className = 'quiz-feedback correct';
-    btn.classList.add('correct');
-  } else {
-    state.quizFeedback.textContent = `❌ 答案是：${correct}`;
-    state.quizFeedback.className = 'quiz-feedback wrong';
-    btn.classList.add('wrong');
-    // Show correct answer
-    dom.quizOptions.querySelectorAll('.quiz-option').forEach(b => {
-      if (b.dataset.zh === correct) b.classList.add('correct');
-    });
+      state.quizHist.total++;
+      if (isRight) {
+        correctCount++;
+        qFb.textContent = '✅ 正确！';
+        qFb.style.color = '#34c759';
+        btn.style.borderColor = '#34c759';
+        btn.style.background = '#e8f8ee';
+      } else {
+        qFb.textContent = '❌ 答案是：' + ans;
+        qFb.style.color = '#ff3b30';
+        btn.style.borderColor = '#ff3b30';
+        btn.style.background = '#fff0ef';
+        qOpts.querySelectorAll('.__q_btn').forEach(b => {
+          if (b.dataset.zh === ans) { b.style.borderColor = '#34c759'; b.style.background = '#e8f8ee'; }
+        });
+      }
+      saveObj(LS.QUIZ_HIST, state.quizHist);
+      qOpts.querySelectorAll('.__q_btn').forEach(b => b.disabled = true);
+      setTimeout(() => { idx++; showQ(); }, 1200);
+    };
   }
 
-  saveObj(LS.QUIZ_HIST, state.quizHist);
-
-  // Disable all
-  dom.quizOptions.querySelectorAll('.quiz-option').forEach(b => b.classList.add('disabled'));
-
-  // Auto-advance
-  setTimeout(() => {
-    state.quizIndex++;
-    showQuizQuestion();
-  }, 1200);
-}
-
-function showQuizResult() {
-  dom.quizArea.style.display = 'none';
-  dom.quizResult.style.display = 'block';
-  const total = state.quizWords.length;
-  const correct = state.quizCorrect;
-  const pct = Math.round(correct / total * 100);
-  dom.resultScore.textContent = `${correct} / ${total}`;
-
-  if (pct === 100) dom.resultText.textContent = '🌟 满分！太厉害了！';
-  else if (pct >= 80) dom.resultText.textContent = '🎉 很棒！继续加油！';
-  else if (pct >= 60) dom.resultText.textContent = '👍 不错，再复习一下！';
-  else dom.resultText.textContent = '💪 加油，多背几遍就好了！';
-}
-
-dom.quizRetry.addEventListener('click', () => {
-  state.quizIndex = 0;
-  state.quizCorrect = 0;
-  state.quizAnswered = false;
-  dom.quizArea.style.display = '';
-  dom.quizResult.style.display = 'none';
-  shuffle(state.quizWords);
-  showQuizQuestion();
-});
-
-dom.quizBackHome.addEventListener('click', () => switchScreen('home'));
-
-dom.quizSkip.addEventListener('click', () => {
-  if (state.quizIndex < state.quizWords.length) {
-    state.quizIndex++;
-    state.quizAnswered = false;
-    dom.quizFeedback.textContent = '';
-    dom.quizFeedback.className = 'quiz-feedback';
-    showQuizQuestion();
+  function showR() {
+    qOpts.style.display = 'none';
+    qFb.style.display = 'none';
+    document.querySelector('#__q_word').style.display = 'none';
+    document.querySelector('#__q_word + div').style.display = 'none';
+    qResult.style.display = 'block';
+    const total = words.length;
+    document.getElementById('__q_score').textContent = correctCount + ' / ' + total;
+    const pct = Math.round(correctCount / total * 100);
+    document.getElementById('__q_msg').textContent =
+      pct === 100 ? '🌟 满分！太厉害了！' :
+      pct >= 80 ? '🎉 很棒！继续加油！' :
+      pct >= 60 ? '👍 不错，再复习一下！' : '💪 加油，多背几遍就好了！';
+    document.getElementById('__q_skip').style.display = 'none';
   }
-});
+
+  // 事件绑定
+  document.getElementById('__q_back').onclick = function() { wrap.remove(); switchScreen('home'); };
+  document.getElementById('__q_home').onclick = function() { wrap.remove(); switchScreen('home'); };
+  document.getElementById('__q_retry').onclick = function() {
+    shuffle(words); idx = 0; correctCount = 0; answered = false;
+    qOpts.style.display = ''; qFb.style.display = '';
+    document.querySelector('#__q_word').style.display = '';
+    document.querySelector('#__q_word + div').style.display = '';
+    document.getElementById('__q_skip').style.display = '';
+    showQ();
+  };
+  document.getElementById('__q_skip').onclick = function() {
+    if (!answered && idx < words.length) { idx++; showQ(); }
+  };
+
+  // 高亮 nav
+  dom.nav.forEach(btn => btn.classList.toggle('active', btn.dataset.screen === 'quiz'));
+  showQ();
+}
 
 // 从首页启动测试
 function addQuizTriggers() {
