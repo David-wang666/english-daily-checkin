@@ -539,18 +539,24 @@ function showQuizQuestion() {
   }
   shuffle(options);
 
-  dom.quizOptions.innerHTML = options.map(opt => `
-    <button class="quiz-option" data-zh="${opt.replace(/"/g,'&quot;')}">${opt}</button>
-  `).join('');
-
-  // Event delegation on quiz options container
-  dom.quizOptions.onclick = (e) => {
-    const btn = e.target.closest('.quiz-option');
-    if (btn && !btn.classList.contains('disabled')) {
-      handleQuizAnswer(btn, correct);
-    }
-  };
+  // Build options with data attributes and global click handler
+  dom.quizOptions.innerHTML = options.map(opt => {
+    const safeZh = opt.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    return `<button class="quiz-option" data-zh="${safeZh}">${opt}</button>`;
+  }).join('');
+  // Store correct answer on container
+  dom.quizOptions.dataset.correct = correct;
 }
+
+// Global click handler for quiz options (uses event delegation)
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('#quiz-options .quiz-option');
+  if (!btn || btn.classList.contains('disabled')) return;
+  const container = btn.closest('#quiz-options');
+  if (!container || !container.dataset.correct) return;
+  const correct = container.dataset.correct;
+  handleQuizAnswer(btn, correct);
+});
 
 function handleQuizAnswer(btn, correct) {
   if (state.quizAnswered) return;
