@@ -333,7 +333,7 @@ html, body {
   perspective: 1000px;
   margin-bottom: 16px;
   cursor: pointer;
-  min-height: 360px;
+  min-height: 400px;
 }
 .card-inner {
   position: relative;
@@ -350,7 +350,7 @@ html, body {
   top: 0;
   left: 0;
   width: 100%;
-  min-height: 360px;
+  min-height: 400px;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   background: var(--card-bg);
@@ -358,16 +358,18 @@ html, body {
   -webkit-backdrop-filter: blur(30px) saturate(180%);
   border-radius: var(--radius-xl);
   box-shadow: 0 8px 40px rgba(0,0,0,0.08);
-  padding: 32px 24px;
+  padding: 28px 22px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-align: center;
   border: 0.5px solid var(--card-border);
 }
+.card-front { padding-top: 32px; }
 .card-back {
   transform: rotateY(180deg);
+  justify-content: center;
 }
 .card-word {
   font-size: 36px;
@@ -391,6 +393,32 @@ html, body {
   background: var(--primary-gradient);
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0,122,255,0.25);
+  margin-bottom: 16px;
+}
+.card-example {
+  width: 100%;
+  padding-top: 12px;
+  border-top: 0.5px solid rgba(0,0,0,0.06);
+}
+.card-example .example-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+.card-example .example-en {
+  font-size: 15px;
+  line-height: 1.6;
+  font-style: italic;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.card-example .example-zh {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 .example-label {
   font-size: 12px;
