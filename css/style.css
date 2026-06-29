@@ -532,14 +532,14 @@ html, body {
   border-radius: var(--radius);
   border: 1.5px solid rgba(0,0,0,0.06);
   background: var(--card-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   font-size: 17px;
   font-family: inherit;
   color: var(--text);
   cursor: pointer;
   transition: var(--transition);
   box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
 }
 .quiz-option:active { 
   background: var(--primary-light);
