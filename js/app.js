@@ -302,6 +302,11 @@ function showCard() {
   dom.cardZh.textContent = w.zh;
   dom.exampleEn.textContent = w.example || '';
   dom.exampleZh.textContent = w.exampleZh || '';
+  // Hide example section if no example
+  const exampleSection = document.querySelector('.card-example');
+  if (exampleSection) {
+    exampleSection.style.display = (w.example) ? '' : 'none';
+  }
   dom.cardInner.classList.remove('flipped');
 
   // Update UI
