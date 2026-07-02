@@ -579,6 +579,7 @@ function startQuiz(catId) {
       state.quizHist.total++;
       if (isRight) {
         correctCount++;
+        state.quizHist.correct++;
         qFb.textContent = '✅ 正确！';
         qFb.style.color = '#34c759';
         btn.style.borderColor = '#34c759';
